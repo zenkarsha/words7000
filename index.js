@@ -67,8 +67,8 @@ function handleEvent(event) {
 function handleMessageEvent(event) {
   switch (event.message.text) {
     case '開始測驗':
-      let question_json = createQuestion();
-      return client.replyMessage(event.replyToken, [question_json]);
+      let question_type_json = createQuestionType();
+      return client.replyMessage(event.replyToken, [question_type_json]);
       break;
     case '得分':
       return handleUserPoints(event);
@@ -81,11 +81,15 @@ function handleMessageEvent(event) {
 function handlePostbackEvent(event) {
   const postback_result = handleUrlParams(event.postback.data);
   switch (postback_result.type) {
+    case 'question_type':
+      let question_type_json = createQuestion(postback_result.question_type);
+      return client.replyMessage(event.replyToken, [question_type_json]);
+      break;
     case 'answer':
       let answer_result = handleAnswer(event.postback.data)
       if (answer_result) {
         updateUserPoints(event);
-        return client.replyMessage(event.replyToken, moreQuestion(postback_result.wid));
+        return client.replyMessage(event.replyToken, moreQuestion(postback_result.question_type, postback_result.wid));
       }
       else {
         echo = { type: "text", text: "答錯了" };
@@ -93,11 +97,11 @@ function handlePostbackEvent(event) {
       }
       break;
     case 'more_question':
-      let more_question_json = createQuestion(postback_result.wid);
+      let more_question_json = createQuestion(postback_result.question_type, postback_result.wid);
       return client.replyMessage(event.replyToken, [more_question_json]);
       break;
     case 'more_test':
-      let question_json = createQuestion();
+      let question_json = createQuestion(postback_result.question_type);
       return client.replyMessage(event.replyToken, [question_json]);
       break;
     default:
@@ -109,11 +113,51 @@ function handleUrlParams(data) {
   const params = new URLSearchParams(data);
   const wid = params.get('wid');
   const type = params.get('type');
+  const question_type = params.get('question_type');
   const content = params.get('content');
-  return {'wid': wid, 'type': type, 'content': content};
+  return {'wid': wid, 'type': type, 'question_type': question_type, 'content': content};
 }
 
-function createQuestion(current_wid = null) {
+function createQuestionType() {
+  return {
+    "type": "flex",
+    "altText": "考試開始，不要作弊！",
+    "contents": {
+      "type": "bubble",
+      "body": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "md",
+        "contents": [
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "英文出題",
+              "displayText": "英文出題",
+              "data": "wid=&type=question_type&question_type=english&content=english"
+            },
+            "style": "secondary",
+            "adjustMode": "shrink-to-fit"
+          },
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "中文出題",
+              "displayText": "中文出題",
+              "data": "wid=&type=question_type&question_type=chinese&content=chinese"
+            },
+            "style": "secondary",
+            "adjustMode": "shrink-to-fit"
+          }
+        ]
+      }
+    }
+  };
+}
+
+function createQuestion(question_type, current_wid = null) {
   let new_words = words;
 
   if (current_wid !== null) {
@@ -125,9 +169,10 @@ function createQuestion(current_wid = null) {
 
   let w = new_words[Math.floor(Math.random() * new_words.length)];
   let contents = [];
+  let question = question_type == 'english' ? w.word : w.translate;
   let w_text = {
     "type": "text",
-    "text": `${w.word}\n`,
+    "text": `${question}\n`,
     "wrap": true
   };
 
@@ -141,13 +186,14 @@ function createQuestion(current_wid = null) {
   });
 
   for (let i = 0; i < answers.length; i++) {
+    let temp_answer = question_type == 'english' ? answers[i].translate : answers[i].word;
     contents.push({
       "type": "button",
       "action": {
         "type": "postback",
-        "label": answers[i].translate,
-        "displayText": answers[i].translate,
-        "data": `wid=${w.id}&type=answer&content=${answers[i].translate}`
+        "label": temp_answer,
+        "displayText": temp_answer,
+        "data": `wid=${w.id}&type=answer&question_type=${question_type}&content=${temp_answer}`
       },
       "style": "secondary",
       "adjustMode": "shrink-to-fit"
@@ -197,7 +243,7 @@ function createAnswers(wid, total = 3) {
   return object;
 }
 
-function moreQuestion(wid) {
+function moreQuestion(question_type, wid) {
   return {
     "type": "flex",
     "altText": "再來一題",
@@ -218,7 +264,7 @@ function moreQuestion(wid) {
               "type": "postback",
               "label": "再來一題",
               "displayText": "再來一題",
-              "data": `wid=${wid}&type=more_question&content=再來一題`
+              "data": `wid=${wid}&type=more_question&question_type=${question_type}&content=再來一題`
             },
             "style": "primary"
           }
@@ -231,7 +277,13 @@ function moreQuestion(wid) {
 function handleAnswer(data) {
   let result = handleUrlParams(data);
   let w = words.filter(x => x.id == result.wid);
-  return result.content == w[0].translate ? true : false;
+
+  if (result.question_type == 'english') {
+    return result.content == w[0].translate ? true : false;
+  }
+  else {
+    return result.content == w[0].word ? true : false;
+  }
 }
 
 function handleUserPoints(event) {
