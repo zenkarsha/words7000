@@ -93,6 +93,7 @@ function handlePostbackEvent(event) {
       }
       else {
         echo = { type: "text", text: "答錯了" };
+        updateUserWrongAnswer(event);
         return client.replyMessage(event.replyToken, echo);
       }
       break;
@@ -289,14 +290,14 @@ function handleAnswer(data) {
 function handleUserPoints(event) {
   let user = event.source.userId;
   let path = `./users/${user}.json`;
-  let user_json = `[{"user": "${user}", "point": 0}]`;
+  let user_json = `[{"user": "${user}", "point": 0, "wrong_answer": 0}]`;
 
   if (fs.existsSync(path)) {
     fs.readFile(path, function (error, data) {
       if (error) throw error;
       else {
         let current_json = JSON.parse(data)
-        return client.replyMessage(event.replyToken, createPointMessage(current_json[0].point));
+        return client.replyMessage(event.replyToken, createPointMessage(current_json[0]));
       }
     });
   }
@@ -312,13 +313,16 @@ function handleUserPoints(event) {
   }
 }
 
-function createPointMessage(point, wid) {
-  let gold_stars = 1;
+function createPointMessage(user_json) {
+  let point = user_json.point;
+  let wrong_answer = !("wrong_answer" in user_json) ? 0 : user_json.wrong_answer;
+  let score = point - wrong_answer;
 
-  if (point >= 2500) gold_stars = 5;
-  else if (point >= 1000) gold_stars = 4;
-  else if (point >= 500) gold_stars = 3;
-  else if (point >= 100) gold_stars = 2;
+  let gold_stars = 1;
+  if (score >= 2500) gold_stars = 5;
+  else if (score >= 1000) gold_stars = 4;
+  else if (score >= 500) gold_stars = 3;
+  else if (score >= 100) gold_stars = 2;
   else gold_stars = 1;
 
   let stars_contents = [];
@@ -365,7 +369,11 @@ function createPointMessage(point, wid) {
         "contents": [
           {
             "type": "text",
-            "text": `你目前的得分為：${point}分\n\n`
+            "text": `你目前的得分為：${point}分`
+          },
+          {
+            "type": "text",
+            "text": `答錯次數：${wrong_answer}次\n\n`
           },
           {
             "type": "box",
@@ -398,9 +406,14 @@ function updateUserPoints(event) {
     fs.readFile(path, function (error, data) {
       if (error) throw error;
       else {
-        let old_json = JSON.parse(data)
+        let old_json = JSON.parse(data);
         let point = old_json[0].point + 1;
-        user_json = `[{"user": "${user}", "point": ${point}}]`
+        let wrong_answer = 0
+
+        if (!("wrong_answer" in old_json[0])) wrong_answer = 0
+        else wrong_answer = old_json[0].wrong_answer;
+
+        user_json = `[{"user": "${user}", "point": ${point}, "wrong_answer": ${wrong_answer}}]`
         fs.writeFile(path, user_json, function (error, data) {
           if (error) throw error;
         });
@@ -408,7 +421,37 @@ function updateUserPoints(event) {
     });
   }
   else {
-    user_json = `[{"user": "${user}", "point": 1}]`
+    user_json = `[{"user": "${user}", "point": 1, "wrong_answer": 0}]`
+    fs.writeFile(path, user_json, function (error, data) {
+      if (error) throw error;
+    });
+  }
+}
+
+function updateUserWrongAnswer(event) {
+  let user = event.source.userId;
+  let path = __dirname + `/users/${user}.json`;
+  let user_json = '';
+
+  if (fs.existsSync(path)) {
+    fs.readFile(path, function (error, data) {
+      if (error) throw error;
+      else {
+        let old_json = JSON.parse(data)
+        let wrong_answer = 1;
+
+        if (!("wrong_answer" in old_json[0])) wrong_answer = 1;
+        else wrong_answer = old_json[0].wrong_answer + 1;
+
+        user_json = `[{"user": "${user}", "point": ${old_json[0].point}, "wrong_answer": ${wrong_answer}}]`
+        fs.writeFile(path, user_json, function (error, data) {
+          if (error) throw error;
+        });
+      }
+    });
+  }
+  else {
+    user_json = `[{"user": "${user}", "point": 0, "wrong_answer": 1}]`
     fs.writeFile(path, user_json, function (error, data) {
       if (error) throw error;
     });
