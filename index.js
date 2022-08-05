@@ -10,6 +10,7 @@ const config = {
 };
 
 
+
 const client = new line.Client(config);
 const app = express();
 const words  = require('./words.json');
@@ -170,10 +171,12 @@ function createQuestion(question_type, current_wid = null) {
 
   let w = new_words[Math.floor(Math.random() * new_words.length)];
   let contents = [];
-  let question = question_type == 'english' ? w.word : w.translate;
+  let question = question_type == 'english' ? (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1") : w.translate;
+
   let w_text = {
     "type": "text",
     "text": `${question}\n`,
+    "size": "xxl",
     "wrap": true
   };
 
@@ -188,12 +191,14 @@ function createQuestion(question_type, current_wid = null) {
 
   for (let i = 0; i < answers.length; i++) {
     let temp_answer = question_type == 'english' ? answers[i].translate : answers[i].word;
+
+    (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1")
     contents.push({
       "type": "button",
       "action": {
         "type": "postback",
-        "label": temp_answer,
-        "displayText": temp_answer,
+        "label": (temp_answer).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1"),
+        "displayText": (temp_answer).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1"),
         "data": `wid=${w.id}&type=answer&question_type=${question_type}&content=${temp_answer}`
       },
       "style": "secondary",
