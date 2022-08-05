@@ -17,19 +17,16 @@ const words  = require('./words.json');
 let echo = { type: 'text', text: '請從選單進行操作 ⬇️' };
 
 app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-app.get('/line', (req, res) => {
   let html = `<html>
     <head>
       <title>高中7000單</title>
+      <script>window.location = "https://line.me/R/ti/p/@323geiqw";</script>
     </head>
     <body style="text-align:center">
-      <h1>高中7000單</h1>
-      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAD6AQAAAACgl2eQAAABwElEQVR4Xu2XW27DMAwECegAOZKvriPlAAbUnaWLCkGb/mYBE06ix/iDIHel1Hofs15XXuIGOm6g4wY6DMxSPNZ6Hvr2M0+Wei8G0Od8rKHBs/R9Cnhc60GAktIiM2HPYzyZFit5ALtrCqhrmgh0sdj9I81PB5ZbrjExZx2/9uSHA0gdsWwPS72XAlwxnKDS5PmOJEA9xlZRKVXNzYY5JwGURlstHE0HKcuT84BCLPgYg5IJOOsooOuCD7cVc6yUHSAJuPKylWkgrKdRACas0ig1djnceZBSEjBhrHqqZgfTeBdOAuBmQ/4arM6OlH8O9wgAvSATHyXDaapsYzvcIwB9aDl+GJdvWWMzsQSAAlGjNi4fjspRmUYBzoga4Wanb1mIaJN/AoD9WiY8o6v23Xs5wET4vmvZu6Z3/WYU0AWi2YABul5ZgLcw5GZaO3EAlXLLDc53VY3oeuUAHZRpWEQN7/JPACZZcYL0dfcgU/7Y+rUcYPmiBcbtt7wy9zQjgBb7uHwABytaLhVYGLK0z+65yT8HoNmW770W/uVsQcByyylNauTxwgfCAI1b+MtpespbUcC7uIGOG+i4gY7/gS+kD/74lQ1w2wAAAABJRU5ErkJggg==" />
+      <h1>自動跳轉中⋯⋯</h1>
     </body>
-  </html>`
+  </html>`;
+
   res.send(html);
 });
 

@@ -15,6 +15,10 @@ ngrok http 3000
 pm2 start index.js
 ```
 
+### site
+
+[高中7000單](https://words7000.unlink.men)
+
 
 ### how to begin
 請參照：[30 天教你如何玩弄 Line bot API](https://ithelp.ithome.com.tw/articles/10215656)
