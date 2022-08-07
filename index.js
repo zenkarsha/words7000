@@ -284,6 +284,15 @@ function moreQuestion(question_type, wid) {
               "data": `wid=${wid}&type=more_question&question_type=${question_type}&content=再來一題`
             },
             "style": "primary"
+          }
+        ]
+      },
+      "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "separator"
           },
           {
             "type": "button",
@@ -292,8 +301,7 @@ function moreQuestion(question_type, wid) {
               "label": "加入字庫",
               "displayText": "加入字庫",
               "data": `wid=${wid}&type=add_to_collection&question_type=&content=加入字庫`
-            },
-            "style": "secondary"
+            }
           }
         ]
       }
