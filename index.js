@@ -12,6 +12,7 @@ const config = {
 };
 
 
+
 const client = new line.Client(config);
 const app = express();
 const words  = require('./words.json');
@@ -420,7 +421,7 @@ function checkWord(event, wid) {
     res.on('end', function() {
       let root = HTMLParser.parse(data);
       let word_pa = root.querySelector('.resultbox .dictt').innerText.replace(new RegExp(/(國際音標)/, "g"), "\n國際音標");
-      let word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div><br><br>〈\s.+〉<br><br>(.+)<\/div>/,"g"), "$3").replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replaceAll("【", "[").replaceAll("】", "]");
+      let word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div><br><br>〈\s.+〉<br><br>(.+)<\/div>/,"g"), "$3").replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]");
 
       return client.replyMessage(event.replyToken, [{
         "type": "flex",
