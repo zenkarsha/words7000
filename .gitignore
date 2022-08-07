@@ -2,5 +2,8 @@
 node_modules
 users/*
 !users/.gitkeep
+user_words/*
+!users/.gitkeep
 production.js
 package-lock.json
+ngrok.yml
