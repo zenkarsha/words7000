@@ -16,6 +16,7 @@ const config = {
 const client = new line.Client(config);
 const app = express();
 const words  = require('./words.json');
+const words_advance  = require('./words-advance.json');
 
 let echo = { type: 'text', text: '請從選單進行操作 ⬇️' };
 
@@ -165,6 +166,28 @@ function createQuestionType() {
             },
             "style": "secondary",
             "adjustMode": "shrink-to-fit"
+          },
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "英文出題 (高階)",
+              "displayText": "英文出題 (高階)",
+              "data": "wid=&type=question_type&question_type=english_advance&content=english_advance"
+            },
+            "style": "secondary",
+            "adjustMode": "shrink-to-fit"
+          },
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "中文出題 (高階)",
+              "displayText": "中文出題 (高階)",
+              "data": "wid=&type=question_type&question_type=chinese_advance&content=chinese_advance"
+            },
+            "style": "secondary",
+            "adjustMode": "shrink-to-fit"
           }
         ]
       }
@@ -173,7 +196,7 @@ function createQuestionType() {
 }
 
 function createQuestion(question_type, current_wid = null) {
-  let new_words = words;
+  let new_words = (question_type == 'english_advance' || question_type == 'chinese_advance') ? words_advance : words;
 
   if (current_wid !== null) {
     let index = words.findIndex(function(x){
@@ -184,7 +207,7 @@ function createQuestion(question_type, current_wid = null) {
 
   let w = new_words[Math.floor(Math.random() * new_words.length)];
   let contents = [];
-  let question = question_type == 'english' ? (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1") : w.translate;
+  let question = (question_type == 'english' || question_type == 'english_advance') ? (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1") : w.translate;
 
   let w_text = {
     "type": "text",
@@ -195,7 +218,7 @@ function createQuestion(question_type, current_wid = null) {
 
   contents.push(w_text);
 
-  let answers = createAnswers(w.id);
+  let answers = createAnswers(question_type, w.id);
   answers.push(w);
 
   let shuffled_answers = answers.sort(function () {
@@ -203,7 +226,7 @@ function createQuestion(question_type, current_wid = null) {
   });
 
   for (let i = 0; i < answers.length; i++) {
-    let temp_answer = question_type == 'english' ? answers[i].translate : answers[i].word;
+    let temp_answer = (question_type == 'english' || question_type == 'english_advance') ? answers[i].translate : answers[i].word;
 
     contents.push({
       "type": "button",
@@ -233,13 +256,23 @@ function createQuestion(question_type, current_wid = null) {
   };
 }
 
-function createAnswers(wid, total = 3) {
+function createAnswers(question_type, wid, total = 3) {
   let object = [];
+  let index;
 
-  let new_words = words;
-  let index = words.findIndex(function(x){
-    return x.id === parseInt(wid);
-  })
+  let new_words = (question_type == 'english_advance' || question_type == 'chinese_advance') ? words_advance : words;
+
+  if (question_type == 'english_advance' || question_type == 'chinese_advance') {
+    total = 5;
+    index = words_advance.findIndex(function(x){
+      return x.id === parseInt(wid);
+    })
+  }
+  else {
+    index = words.findIndex(function(x){
+      return x.id === parseInt(wid);
+    })
+  }
   if (index !== -1) new_words = removeByIndex(new_words, index);
 
   let array_container = [];
@@ -312,9 +345,14 @@ function moreQuestion(question_type, wid) {
 
 function handleAnswer(data) {
   let result = handleUrlParams(data);
-  let w = words.filter(x => x.id == result.wid);
+  let w;
 
-  if (result.question_type == 'english') {
+  if (result.question_type == 'english_advance' || result.question_type == 'chinese_advance')
+    w = words_advance.filter(x => x.id == result.wid);
+  else
+    w = words.filter(x => x.id == result.wid);
+
+  if (result.question_type == 'english' || result.question_type == 'english_advance') {
     return result.content == w[0].translate ? true : false;
   }
   else {
