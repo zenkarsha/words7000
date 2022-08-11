@@ -535,16 +535,24 @@ function addToUserCollection(event, wid) {
       else {
         let old_json = JSON.parse(data);
         let user_words = old_json[0].words;
-        user_words.push(word);
-        user_json = [{"user": user, "words": user_words}];
 
-        fs.writeFile(path, JSON.stringify(user_json), function (error, data) {
-          if (error) throw error;
-          else {
-            echo = { type: "text", text: "已加入您的字庫" };
-            return client.replyMessage(event.replyToken, echo);
-          }
-        });
+        let word_index = getObjectItemIndex(user_words, word.id);
+        if (word_index == -1) {
+          user_words.push(word);
+          user_json = [{"user": user, "words": user_words}];
+
+          fs.writeFile(path, JSON.stringify(user_json), function (error, data) {
+            if (error) throw error;
+            else {
+              echo = { type: "text", text: "已加入您的字庫" };
+              return client.replyMessage(event.replyToken, echo);
+            }
+          });
+        }
+        else {
+          echo = { type: "text", text: "字彙已在您的字庫中！" };
+          return client.replyMessage(event.replyToken, echo);
+        }
       }
     });
   }
