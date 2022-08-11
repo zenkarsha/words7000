@@ -12,7 +12,6 @@ const config = {
 };
 
 
-
 const client = new line.Client(config);
 const app = express();
 const words  = require('./words.json');
@@ -199,9 +198,7 @@ function createQuestion(question_type, current_wid = null) {
   let new_words = (question_type == 'english_advance' || question_type == 'chinese_advance') ? words_advance : words;
 
   if (current_wid !== null) {
-    let index = words.findIndex(function(x){
-      return x.id === parseInt(current_wid);
-    })
+    let index = getObjectItemIndex(words, current_wid);
     if (index !== -1) new_words = removeByIndex(new_words, index);
   }
 
@@ -264,14 +261,10 @@ function createAnswers(question_type, wid, total = 3) {
 
   if (question_type == 'english_advance' || question_type == 'chinese_advance') {
     total = 5;
-    index = words_advance.findIndex(function(x){
-      return x.id === parseInt(wid);
-    })
+    index = getObjectItemIndex(words_advance, wid);
   }
   else {
-    index = words.findIndex(function(x){
-      return x.id === parseInt(wid);
-    })
+    index = getObjectItemIndex(words, wid);
   }
   if (index !== -1) new_words = removeByIndex(new_words, index);
 
@@ -442,9 +435,7 @@ function createUserCollection(event) {
 }
 
 function checkWord(event, wid) {
-  let index = words.findIndex(function(x){
-    return x.id === parseInt(wid);
-  })
+  index = getObjectItemIndex(words, wid);
   let w = words[index];
   let word = (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1");
   let url = "https://cdict.info/query/" + word;
@@ -535,9 +526,7 @@ function addToUserCollection(event, wid) {
   let path = __dirname + `/user_words/${user}.json`;
   let user_json = [];
 
-  let index = words.findIndex(function(x){
-    return x.id === parseInt(wid);
-  })
+  let index = getObjectItemIndex(words, wid);
   let word = words[index];
 
   if (fs.existsSync(path)) {
@@ -583,9 +572,7 @@ function deleteFromMyCollection(event, wid) {
         let old_json = JSON.parse(data);
         let user_words = old_json[0].words;
 
-        let index = user_words.findIndex(function(x){
-          return x.id === parseInt(wid);
-        })
+        let index = getObjectItemIndex(words, wid);
         user_words.splice(index, 1);
         user_json = [{"user": user, "words": user_words}];
 
@@ -806,6 +793,13 @@ function removeByIndex(array, index) {
   return array.filter(function (el, i) {
     return index !== i;
   });
+}
+
+function getObjectItemIndex(object, id) {
+  let index;
+  return index = object.findIndex(function(x) {
+    return x.id === id;
+  })
 }
 
 // listen on port

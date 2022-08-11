@@ -3,8 +3,8 @@ node_modules
 users/*
 !users/.gitkeep
 user_words/*
-!users/.gitkeep
-production.js
-commit.js
-package-lock.json
+!user_words/.gitkeep
+_commit.js
+_production.js
 ngrok.yml
+package-lock.json
