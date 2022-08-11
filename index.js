@@ -435,7 +435,7 @@ function createUserCollection(event) {
 }
 
 function checkWord(event, wid) {
-  index = getObjectItemIndex(words, wid);
+  let index = getObjectItemIndex(words, wid);
   let w = words[index];
   let word = (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1");
   let url = "https://cdict.info/query/" + word;
@@ -798,7 +798,7 @@ function removeByIndex(array, index) {
 function getObjectItemIndex(object, id) {
   let index;
   return index = object.findIndex(function(x) {
-    return x.id === id;
+    return x.id === parseInt(id);
   })
 }
 
