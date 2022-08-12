@@ -95,12 +95,11 @@ function handlePostbackEvent(event) {
       let answer_result = handleAnswer(event.postback.data)
       if (answer_result) {
         updateUserPoints(event);
-        return client.replyMessage(event.replyToken, moreQuestion(postback_result.question_type, postback_result.wid));
+        return client.replyMessage(event.replyToken, moreQuestion(postback_result.question_type, postback_result.wid, true));
       }
       else {
-        echo = { type: "text", text: "答錯了" };
         updateUserWrongAnswer(event);
-        return client.replyMessage(event.replyToken, echo);
+        return client.replyMessage(event.replyToken, moreQuestion(postback_result.question_type, postback_result.wid, false));
       }
       break;
     case 'more_question':
@@ -287,7 +286,47 @@ function createAnswers(question_type, wid, total = 3) {
   return object;
 }
 
-function moreQuestion(question_type, wid) {
+function moreQuestion(question_type, wid, answer) {
+  let w = words.filter(x => x.id == wid);
+  let contents = [];
+
+  if (answer) {
+    contents.push({
+      "type": "text",
+      "size": "xl",
+      "text": "恭喜、答對了！！！\n"
+    });
+  }
+  else {
+    contents.push({
+      "type": "text",
+      "size": "xl",
+      "color": "#ff0000",
+      "text": "❌ 答錯了！\n"
+    });
+  }
+
+  contents.push({
+    "type": "separator"
+  });
+
+  contents.push({
+    "type": "text",
+    "wrap": true,
+    "text": `${w[0].word}\n翻譯：${w[0].translate}\n`
+  });
+
+  contents.push({
+    "type": "button",
+    "action": {
+      "type": "postback",
+      "label": "再來一題",
+      "displayText": "再來一題",
+      "data": `wid=${wid}&type=more_question&question_type=${question_type}&content=再來一題`
+    },
+    "style": "primary"
+  });
+
   return {
     "type": "flex",
     "altText": "再來一題",
@@ -297,22 +336,7 @@ function moreQuestion(question_type, wid) {
         "type": "box",
         "layout": "vertical",
         "spacing": "md",
-        "contents": [
-          {
-            "type": "text",
-            "text": "恭喜、答對了！！！\n"
-          },
-          {
-            "type": "button",
-            "action": {
-              "type": "postback",
-              "label": "再來一題",
-              "displayText": "再來一題",
-              "data": `wid=${wid}&type=more_question&question_type=${question_type}&content=再來一題`
-            },
-            "style": "primary"
-          }
-        ]
+        "contents": contents
       },
       "footer": {
         "type": "box",
