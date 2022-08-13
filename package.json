@@ -9,6 +9,7 @@
   "dependencies": {
     "@line/bot-sdk": "^7.0.0",
     "express": "^4.16.3",
+    "get-audio-duration": "^3.1.0",
     "https": "^1.0.0",
     "node-html-parser": "^5.3.3"
   }

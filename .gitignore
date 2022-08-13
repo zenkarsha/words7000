@@ -6,5 +6,8 @@ user_words/*
 !user_words/.gitkeep
 _commit.js
 _production.js
+_test.js
+_download-audio.js
+test.js
 ngrok.yml
 package-lock.json

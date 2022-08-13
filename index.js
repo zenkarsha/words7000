@@ -1,10 +1,14 @@
 'use strict';
 
+/*==================================
+ BASIC REUIRE
+====================================*/
 const line = require('@line/bot-sdk');
 const express = require('express');
 const path = require('path');
 const HTMLParser = require('node-html-parser');
 const https = require('https');
+const { getAudioDurationInSeconds } = require('get-audio-duration')
 const fs = require('fs');
 const config = {
   channelAccessToken: '',
@@ -12,12 +16,22 @@ const config = {
 };
 
 
+
+/*==================================
+ CUSTOM REUIRE AND INIT
+====================================*/
 const client = new line.Client(config);
 const app = express();
 const words  = require('./words.json');
 const words_advance  = require('./words-advance.json');
-
 let echo = { type: 'text', text: '請從選單進行操作 ⬇️' };
+
+
+
+/*==================================
+ APP REQUEST ACTIONS
+====================================*/
+app.use('/audio/', express.static('./audio/'));
 
 app.get('/', (req, res) => {
   let html = `<html>
@@ -47,6 +61,11 @@ app.on('postback', function (event) {
   console.log(event);
 });
 
+
+
+/*==================================
+ APP ROUTER
+====================================*/
 function handleEvent(event) {
   if (event.type !== 'message' || event.type !== 'postback')
   {
@@ -79,6 +98,17 @@ function handleMessageEvent(event) {
     case '得分':
       return handleUserPoints(event);
       break;
+    case 'test':
+      getAudioDurationInSeconds('https://words7000.unlink.men/audio/1.m4a').then((duration) => {
+        let milliseconds = duration * 1000;
+        echo = {
+          "type": "audio",
+          "originalContentUrl": "https://words7000.unlink.men/audio/1.m4a",
+          "duration": milliseconds
+        };
+        client.replyMessage(event.replyToken, echo);
+      });
+      break;
     default:
       return client.replyMessage(event.replyToken, echo);
   }
@@ -102,6 +132,9 @@ function handlePostbackEvent(event) {
         return client.replyMessage(event.replyToken, moreQuestion(postback_result.question_type, postback_result.wid, false));
       }
       break;
+    case 'play_pronounce':
+      return playPronounce(event, postback_result.wid);
+      break;
     case 'more_question':
       let more_question_json = createQuestion(postback_result.question_type, postback_result.wid);
       return client.replyMessage(event.replyToken, [more_question_json]);
@@ -123,15 +156,11 @@ function handlePostbackEvent(event) {
   }
 }
 
-function handleUrlParams(data) {
-  const params = new URLSearchParams(data);
-  const wid = params.get('wid');
-  const type = params.get('type');
-  const question_type = params.get('question_type');
-  const content = params.get('content');
-  return {'wid': wid, 'type': type, 'question_type': question_type, 'content': content};
-}
 
+
+/*==================================
+ APP FUNCTIONS
+====================================*/
 function createQuestionType() {
   return {
     "type": "flex",
@@ -327,6 +356,17 @@ function moreQuestion(question_type, wid, answer) {
     "style": "primary"
   });
 
+  contents.push({
+    "type": "button",
+    "action": {
+      "type": "postback",
+      "label": "聽發音",
+      "displayText": "聽發音",
+      "data": `wid=${wid}&type=play_pronounce&question_type=${question_type}&content=聽發音`
+    },
+    "style": "secondary"
+  });
+
   return {
     "type": "flex",
     "altText": "再來一題",
@@ -461,7 +501,10 @@ function createUserCollection(event) {
 function checkWord(event, wid) {
   let index = getObjectItemIndex(words, wid);
   let w = words[index];
-  let word = (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1");
+  let word = (w.word).replace( new RegExp(/é/,"g"), "e").replace( new RegExp(/-/,"g"), "").replace( new RegExp(/\./,"g"), "").replace( new RegExp(/(\w+)\s(\(\w+\.?\))/,"g"), "$1");
+
+  if (word == "BBQ") word = "barbecue";
+
   let url = "https://cdict.info/query/" + word;
 
   const request = https.request(url, function(res) {
@@ -520,7 +563,14 @@ function checkWord(event, wid) {
             "layout": "vertical",
             "contents": [
               {
-                "type": "separator"
+                "type": "button",
+                "action": {
+                  "type": "postback",
+                  "label": "聽發音",
+                  "displayText": "聽發音",
+                  "data": `wid=${wid}&type=play_pronounce&content=聽發音`
+                },
+                "style": "secondary"
               },
               {
                 "type": "button",
@@ -543,6 +593,21 @@ function checkWord(event, wid) {
   });
 
   request.end();
+}
+
+function playPronounce(event, wid) {
+  let index = getObjectItemIndex(words, wid);
+  let w = words[index];
+
+  getAudioDurationInSeconds(`https://words7000.unlink.men/audio/${w.id}.m4a`).then((duration) => {
+    let milliseconds = duration * 1000;
+    echo = {
+      "type": "audio",
+      "originalContentUrl": `https://words7000.unlink.men/audio/${w.id}.m4a`,
+      "duration": milliseconds
+    };
+    client.replyMessage(event.replyToken, echo);
+  });
 }
 
 function addToUserCollection(event, wid) {
@@ -821,6 +886,20 @@ function updateUserWrongAnswer(event) {
   }
 }
 
+
+
+/*==================================
+ BASIC FUNCTIONS
+====================================*/
+function handleUrlParams(data) {
+  const params = new URLSearchParams(data);
+  const wid = params.get('wid');
+  const type = params.get('type');
+  const question_type = params.get('question_type');
+  const content = params.get('content');
+  return {'wid': wid, 'type': type, 'question_type': question_type, 'content': content};
+}
+
 function removeByIndex(array, index) {
   return array.filter(function (el, i) {
     return index !== i;
@@ -834,7 +913,11 @@ function getObjectItemIndex(object, id) {
   })
 }
 
-// listen on port
+
+
+/*==================================
+ START APP AND LISTEN ON PORT
+====================================*/
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`listening on ${port}`);
