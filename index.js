@@ -32,6 +32,7 @@ let echo = { type: 'text', text: '請從選單進行操作 ⬇️' };
  APP REQUEST ACTIONS
 ====================================*/
 app.use('/audio/', express.static('./audio/'));
+app.use('/video/', express.static('./video/'));
 
 app.get('/', (req, res) => {
   let html = `<html>
@@ -99,18 +100,18 @@ function handleMessageEvent(event) {
       return handleUserPoints(event);
       break;
     case 'test':
-      getAudioDurationInSeconds('https://words7000.unlink.men/audio/1.m4a').then((duration) => {
-        let milliseconds = duration * 1000;
-        echo = {
-          "type": "audio",
-          "originalContentUrl": "https://words7000.unlink.men/audio/1.m4a",
-          "duration": milliseconds
-        };
-        client.replyMessage(event.replyToken, echo);
-      });
+      return client.replyMessage(event.replyToken, echo);
       break;
     default:
-      return client.replyMessage(event.replyToken, echo);
+      let user = event.source.userId;
+      let path = __dirname + `/user_question/${user}.json`;
+
+      if (fs.existsSync(path)) {
+        return handleAudioAnswer(event);
+      }
+      else {
+        return client.replyMessage(event.replyToken, echo);
+      }
   }
 }
 
@@ -118,7 +119,7 @@ function handlePostbackEvent(event) {
   const postback_result = handleUrlParams(event.postback.data);
   switch (postback_result.type) {
     case 'question_type':
-      let question_type_json = createQuestion(postback_result.question_type);
+      let question_type_json = createQuestion(event, postback_result.question_type);
       return client.replyMessage(event.replyToken, [question_type_json]);
       break;
     case 'answer':
@@ -136,11 +137,11 @@ function handlePostbackEvent(event) {
       return playPronounce(event, postback_result.wid);
       break;
     case 'more_question':
-      let more_question_json = createQuestion(postback_result.question_type, postback_result.wid);
+      let more_question_json = createQuestion(event, postback_result.question_type, postback_result.wid);
       return client.replyMessage(event.replyToken, [more_question_json]);
       break;
     case 'more_test':
-      let question_json = createQuestion(postback_result.question_type);
+      let question_json = createQuestion(event, postback_result.question_type);
       return client.replyMessage(event.replyToken, [question_json]);
       break;
     case 'add_to_collection':
@@ -198,6 +199,17 @@ function createQuestionType() {
             "type": "button",
             "action": {
               "type": "postback",
+              "label": "發音出題",
+              "displayText": "發音出題",
+              "data": "wid=&type=question_type&question_type=audio&content=audio"
+            },
+            "style": "secondary",
+            "adjustMode": "shrink-to-fit"
+          },
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
               "label": "英文出題 (高階)",
               "displayText": "英文出題 (高階)",
               "data": "wid=&type=question_type&question_type=english_advance&content=english_advance"
@@ -222,8 +234,72 @@ function createQuestionType() {
   };
 }
 
-function createQuestion(question_type, current_wid = null) {
-  let new_words = (question_type == 'english_advance' || question_type == 'chinese_advance') ? words_advance : words;
+function createQuestion(event, question_type, current_wid = null) {
+  if (question_type == 'audio') {
+    return createAudioQuestion(event, question_type, current_wid);
+  }
+  else {
+    let new_words = (question_type == 'english_advance' || question_type == 'chinese_advance') ? words_advance : words;
+
+    if (current_wid !== null) {
+      let index = getObjectItemIndex(words, current_wid);
+      if (index !== -1) new_words = removeByIndex(new_words, index);
+    }
+
+    let w = new_words[Math.floor(Math.random() * new_words.length)];
+    let contents = [];
+    let question = (question_type == 'english' || question_type == 'english_advance') ? (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1") : w.translate;
+
+    let w_text = {
+      "type": "text",
+      "text": `${question}\n`,
+      "size": "xxl",
+      "wrap": true
+    };
+
+    contents.push(w_text);
+
+    let answers = createAnswers(question_type, w.id);
+    answers.push(w);
+
+    let shuffled_answers = answers.sort(function () {
+      return Math.random() - 0.5;
+    });
+
+    for (let i = 0; i < answers.length; i++) {
+      let temp_answer = (question_type == 'english' || question_type == 'english_advance') ? answers[i].translate : answers[i].word;
+
+      contents.push({
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": (temp_answer).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1"),
+          "displayText": (temp_answer).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1"),
+          "data": `wid=${w.id}&type=answer&question_type=${question_type}&content=${temp_answer}`
+        },
+        "style": "secondary",
+        "adjustMode": "shrink-to-fit"
+      });
+    }
+
+    return {
+      "type": "flex",
+      "altText": "考試開始，不要作弊！",
+      "contents": {
+        "type": "bubble",
+        "body": {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "md",
+          "contents": contents
+        }
+      }
+    };
+  }
+}
+
+function createAudioQuestion(event, question_type, current_wid = null) {
+  let new_words = words;
 
   if (current_wid !== null) {
     let index = getObjectItemIndex(words, current_wid);
@@ -231,51 +307,49 @@ function createQuestion(question_type, current_wid = null) {
   }
 
   let w = new_words[Math.floor(Math.random() * new_words.length)];
-  let contents = [];
-  let question = (question_type == 'english' || question_type == 'english_advance') ? (w.word).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1") : w.translate;
 
-  let w_text = {
-    "type": "text",
-    "text": `${question}\n`,
-    "size": "xxl",
-    "wrap": true
-  };
+  let user = event.source.userId;
+  let path = __dirname + `/user_question/${user}.json`;
+  let user_json = [w];
 
-  contents.push(w_text);
-
-  let answers = createAnswers(question_type, w.id);
-  answers.push(w);
-
-  let shuffled_answers = answers.sort(function () {
-    return Math.random() - 0.5;
+  fs.writeFile(path, JSON.stringify(user_json), function (error, data) {
+    if (error) throw error;
   });
-
-  for (let i = 0; i < answers.length; i++) {
-    let temp_answer = (question_type == 'english' || question_type == 'english_advance') ? answers[i].translate : answers[i].word;
-
-    contents.push({
-      "type": "button",
-      "action": {
-        "type": "postback",
-        "label": (temp_answer).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1"),
-        "displayText": (temp_answer).replace( new RegExp(/(\w+)\s(\(\w+\.\))/,"g"), "$1"),
-        "data": `wid=${w.id}&type=answer&question_type=${question_type}&content=${temp_answer}`
-      },
-      "style": "secondary",
-      "adjustMode": "shrink-to-fit"
-    });
-  }
 
   return {
     "type": "flex",
     "altText": "考試開始，不要作弊！",
     "contents": {
       "type": "bubble",
+      "hero": {
+        "type": "video",
+        "url": `https://words7000.unlink.men/video/${w.id}.mp4`,
+        "previewUrl": "https://words7000.unlink.men/audio/cover.png",
+        "altContent": {
+          "type": "image",
+          "url": `https://words7000.unlink.men/audio/cover.png`,
+          "flex": 1,
+          "size": "full",
+          "aspectRatio": "16:9",
+          "aspectMode": "cover"
+        },
+        "action": {
+          "type": "uri",
+          "label": "action",
+          "uri": `https://words7000.unlink.men/video/${w.id}.mp4`
+        },
+        "aspectRatio": "16:9"
+      },
       "body": {
         "type": "box",
         "layout": "vertical",
-        "spacing": "md",
-        "contents": contents
+        "contents": [
+          {
+            "type": "text",
+            "wrap": true,
+            "text": "請點擊影片聽取音檔\n並輸入答案後送出"
+          }
+        ]
       }
     }
   };
@@ -417,6 +491,41 @@ function handleAnswer(data) {
   }
 }
 
+function handleAudioAnswer(event) {
+  let question_type = "audio";
+  let user = event.source.userId;
+  let path = __dirname + `/user_question/${user}.json`;
+
+  fs.readFile(path, function (error, data) {
+    if (error) throw error;
+    else {
+      let user_json = JSON.parse(data);
+      let user_word = user_json[0].word;
+      let wid = user_json[0].id;
+
+      let answer = user_word.replace( new RegExp(/(\w+)\s.+/,"g"), "$1").replace( new RegExp(/é/,"g"), "e").replace( new RegExp(/-/,"g"), "").replace( new RegExp(/\./,"g"), "").replace( new RegExp(/\s/,"g"), "");
+      answer = answer.toLowerCase();
+
+      let user_answer = event.message.text;
+      user_answer = user_answer.replace( new RegExp(/\s/,"g"), "").replace( new RegExp(/é/,"g"), "e").replace( new RegExp(/-/,"g"), "").replace( new RegExp(/\./,"g"), "");
+      user_answer = user_answer.toLowerCase();
+
+      fs.unlink(path,function(err){
+        if (err) return console.log(err);
+      });
+
+      if (user_answer == answer) {
+        updateUserPoints(event);
+        return client.replyMessage(event.replyToken, moreQuestion(question_type, wid, true));
+      }
+      else {
+        updateUserWrongAnswer(event);
+        return client.replyMessage(event.replyToken, moreQuestion(question_type, wid, false));
+      }
+    }
+  });
+}
+
 function createUserCollection(event) {
   let user = event.source.userId;
   let path = __dirname + `/user_words/${user}.json`;
@@ -516,8 +625,23 @@ function checkWord(event, wid) {
 
     res.on('end', function() {
       let root = HTMLParser.parse(data);
-      let word_pa = root.querySelector('.resultbox .dictt').innerText.replace(new RegExp(/(國際音標)/, "g"), "\n國際音標");
-      let word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div><br><br>〈\s.+〉<br><br>(.+)<\/div>/,"g"), "$3").replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]");
+      let word_pa, word_info;
+
+      if (root.querySelector('.resultbox') == null) {
+        word_pa = "";
+        word_info = w.translate;
+      }
+      else {
+        if (root.querySelector('.resultbox .dictt') == null)
+          word_pa = "";
+        else
+          word_pa = root.querySelector('.resultbox .dictt').innerText.replace(new RegExp(/(國際音標)/, "g"), "\n國際音標");
+
+        word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div>\n<div class=\"dictp\">.+\n\n〈\s.+〉\n\n/,"g"), "").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]");
+
+        if (word_info.includes("找不到相關中英文資料") || word_info.includes("找不到相關片語資料"))
+          word_info = w.translate;
+      }
 
       return client.replyMessage(event.replyToken, [{
         "type": "flex",
