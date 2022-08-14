@@ -4,6 +4,8 @@ users/*
 !users/.gitkeep
 user_words/*
 !user_words/.gitkeep
+user_question/*
+!user_question/.gitkeep
 _commit.js
 _production.js
 _test.js
