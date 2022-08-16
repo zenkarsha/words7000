@@ -592,7 +592,7 @@ function createUserCollection(event) {
 
         return client.replyMessage(event.replyToken, [{
           "type": "flex",
-          "altText": "Flex Message",
+          "altText": "我的字庫",
           "contents": {
             "type": "carousel",
             "contents": bubble_content
@@ -793,7 +793,7 @@ function deleteFromMyCollection(event, wid) {
         let old_json = JSON.parse(data);
         let user_words = old_json[0].words;
 
-        let index = getObjectItemIndex(words, wid);
+        let index = getObjectItemIndex(user_words, wid);
         user_words.splice(index, 1);
         user_json = [{"user": user, "words": user_words}];
 
