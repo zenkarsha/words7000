@@ -643,7 +643,7 @@ function checkWord(event, wid) {
         else
           word_pa = root.querySelector('.resultbox .dictt').innerText.replace(new RegExp(/(國際音標)/, "g"), "\n國際音標");
 
-        word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div>\n<div class=\"dictp\">.+\n\n〈\s.+〉\n\n/,"g"), "").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]");
+        word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div>\n<div class=\"dictp\">.+\n\n〈\s.+〉\n\n/,"g"), "").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]").replace(new RegExp(/(<([^>]+)>)/, "ig"), "");
 
         if (word_info.includes("找不到相關中英文資料") || word_info.includes("找不到相關片語資料"))
           word_info = w.translate;
@@ -709,6 +709,18 @@ function checkWord(event, wid) {
                   "label": "從字庫刪除",
                   "displayText": "從字庫刪除",
                   "data": `wid=${wid}&type=delete_from_my_collection&content=從字庫刪除`
+                }
+              },
+              {
+                "type": "separator"
+              },
+              {
+                "type": "button",
+                "action": {
+                  "type": "postback",
+                  "label": "查看字庫",
+                  "displayText": "查看字庫",
+                  "data": `wid=&type=check_my_collection&content=查看字庫`
                 }
               }
             ]
