@@ -537,67 +537,73 @@ function createUserCollection(event) {
         let user_json = JSON.parse(data);
         let user_words = user_json[0].words;
 
-        let bubble_content = [];
-        let box_content = [];
-
-        for (let i = 0; i < user_words.length; i++) {
-          let temp_box = {
-            "type": "box",
-            "layout": "horizontal",
-            "spacing": "md",
-            "contents": [
-              {
-                "type": "text",
-                "wrap": true,
-                "flex": 5,
-                "text": `${user_words[i].word}\n${user_words[i].translate}`
-              },
-              {
-                "type": "button",
-                "flex": 2,
-                "action": {
-                  "type": "postback",
-                  "label": "查看",
-                  "displayText": "查看",
-                  "data": `wid=${user_words[i].id}&type=check_word&content=查看`
-                },
-                "style": "secondary"
-              }
-            ]
-          };
-          box_content.push(temp_box);
-
-          if ((parseInt(i) + 1) < user_words.length && (parseInt(i) + 1) % 7 != 0) {
-            let separator = {
-              "type": "separator"
-            };
-            box_content.push(separator);
-          }
-
-          if ((parseInt(i) + 1) % 7 == 0 || (parseInt(i) + 1) == user_words.length) {
-            let temp_bubble = {
-              "type": "bubble",
-              "body": {
-                "type": "box",
-                "layout": "vertical",
-                "spacing": "md",
-                "contents": box_content
-              }
-            };
-
-            bubble_content.push(temp_bubble);
-            box_content = [];
-          }
+        if (user_words.length == 0) {
+          echo = { type: "text", text: "您的字庫裡尚無任何單字" };
+          return client.replyMessage(event.replyToken, echo);
         }
+        else {
+          let bubble_content = [];
+          let box_content = [];
 
-        return client.replyMessage(event.replyToken, [{
-          "type": "flex",
-          "altText": "我的字庫",
-          "contents": {
-            "type": "carousel",
-            "contents": bubble_content
+          for (let i = 0; i < user_words.length; i++) {
+            let temp_box = {
+              "type": "box",
+              "layout": "horizontal",
+              "spacing": "md",
+              "contents": [
+                {
+                  "type": "text",
+                  "wrap": true,
+                  "flex": 5,
+                  "text": `${user_words[i].word}\n${user_words[i].translate}`
+                },
+                {
+                  "type": "button",
+                  "flex": 2,
+                  "action": {
+                    "type": "postback",
+                    "label": "查看",
+                    "displayText": "查看",
+                    "data": `wid=${user_words[i].id}&type=check_word&content=查看`
+                  },
+                  "style": "secondary"
+                }
+              ]
+            };
+            box_content.push(temp_box);
+
+            if ((parseInt(i) + 1) < user_words.length && (parseInt(i) + 1) % 7 != 0) {
+              let separator = {
+                "type": "separator"
+              };
+              box_content.push(separator);
+            }
+
+            if ((parseInt(i) + 1) % 7 == 0 || (parseInt(i) + 1) == user_words.length) {
+              let temp_bubble = {
+                "type": "bubble",
+                "body": {
+                  "type": "box",
+                  "layout": "vertical",
+                  "spacing": "md",
+                  "contents": box_content
+                }
+              };
+
+              bubble_content.push(temp_bubble);
+              box_content = [];
+            }
           }
-        }]);
+
+          return client.replyMessage(event.replyToken, [{
+            "type": "flex",
+            "altText": "我的字庫",
+            "contents": {
+              "type": "carousel",
+              "contents": bubble_content
+            }
+          }]);
+        }
       }
     });
   }
