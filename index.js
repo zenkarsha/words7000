@@ -150,8 +150,12 @@ function handlePostbackEvent(event) {
     case 'delete_from_my_collection':
       return deleteFromMyCollection(event, postback_result.wid);
       break;
+    case 'check_my_collection':
+      return createUserCollection(event);
+      break;
     case 'check_word':
       return checkWord(event, postback_result.wid);
+      break;
     default:
       return client.replyMessage(event.replyToken, echo);
   }
@@ -643,11 +647,33 @@ function checkWord(event, wid) {
         else
           word_pa = root.querySelector('.resultbox .dictt').innerText.replace(new RegExp(/(國際音標)/, "g"), "\n國際音標");
 
-        word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div>\n<div class=\"dictp\">.+\n\n〈\s.+〉\n\n/,"g"), "").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]").replace(new RegExp(/(<([^>]+)>)/, "ig"), "");
+        word_info = (root.querySelector('.resultbox').toString()).replace(new RegExp(/<br\s*[\/]?>/, "g"), "\n").replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div>\n<div class=\"dictp\">.+\n\n〈\s.+〉\n\n/,"g"), "").replace(new RegExp(/<div class=\"resultbox\"><div class=\"bartop\">(.+)<\/div><div class=\"xbox\">(.+)<\/div>\n\s<\/div>/,"g"), "").replace(new RegExp(/【/, "g"), "[").replace(new RegExp(/】/, "g"), "]").replace(new RegExp(/(<([^>]+)>)/, "ig"), "");
 
         if (word_info.includes("找不到相關中英文資料") || word_info.includes("找不到相關片語資料"))
           word_info = w.translate;
       }
+
+      let body_contents = [];
+
+      if (word_pa != "") {
+        body_contents.push({
+          "type": "text",
+          "color": "#999999",
+          "size": "xs",
+          "wrap": true,
+          "text": word_pa
+        });
+
+        body_contents.push({
+          "type": "separator"
+        });
+      }
+
+      body_contents.push({
+        "type": "text",
+        "wrap": true,
+        "text": word_info
+      });
 
       return client.replyMessage(event.replyToken, [{
         "type": "flex",
@@ -670,23 +696,7 @@ function checkWord(event, wid) {
             "type": "box",
             "layout": "vertical",
             "spacing": "md",
-            "contents": [
-              {
-                "type": "text",
-                "color": "#999999",
-                "size": "xs",
-                "wrap": true,
-                "text": word_pa
-              },
-              {
-                "type": "separator"
-              },
-              {
-                "type": "text",
-                "wrap": true,
-                "text": word_info
-              }
-            ]
+            "contents": body_contents
           },
           "footer": {
             "type": "box",
